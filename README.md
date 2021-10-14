@@ -84,40 +84,40 @@ webpack函数内部会根据参数`callback`以及配置项`watch`的值执行�
 **createCompiler impl**
 ```js
 const createCompiler = rawOptions => {
-	// webpack的很多配置项都支持多中配置方式，这里是为了将这些配置项统一化以及给一些配置项设置默认值
-	const options = getNormalizedWebpackOptions(rawOptions);
-	// 设置options.context和infrastructureLogging默认值
-	applyWebpackOptionsBaseDefaults(options);
-	// 实例化Compiler
-	const compiler = new Compiler(options.context);
-	compiler.options = options;
-	// 对compiler的infrastructureLogger、inputFileSystem、outputFileSystem、intermediateFileSystem、watchFileSystem进行了设置，并对声明周期钩子beforeRun进行了监听
-	new NodeEnvironmentPlugin({
-		infrastructureLogging: options.infrastructureLogging
-	}).apply(compiler);
-	// 初始化配置项中的所有插件
-	if (Array.isArray(options.plugins)) {
-		for (const plugin of options.plugins) {
-			if (typeof plugin === "function") {
-				plugin.call(compiler, compiler);
-			} else {
-				plugin.apply(compiler);
-			}
-		}
-	}
-	// 设置部分配置项的默认值
-	applyWebpackOptionsDefaults(options);
-	// 执行钩子environment
-	compiler.hooks.environment.call();
-	// 执行钩子afterEnvironment
-	compiler.hooks.afterEnvironment.call();
-	// 设置compiler的*outputPath和name、初始化一些内部插件、执行一些生命周期钩子
-	new WebpackOptionsApply().process(options, compiler);
-	// 执行钩子initialize
-	compiler.hooks.initialize.call();
-	// 最后返回Compiler实例
-	return compiler;
-};
+  // webpack的很多配置项都支持多中配置方式，这里是为了将这些配置项统一化以及给一些配置项设置默认值
+  const options = getNormalizedWebpackOptions(rawOptions)
+  // 设置options.context和infrastructureLogging默认值
+  applyWebpackOptionsBaseDefaults(options)
+  // 实例化Compiler
+  const compiler = new Compiler(options.context)
+  compiler.options = options
+  // 对compiler的infrastructureLogger、inputFileSystem、outputFileSystem、intermediateFileSystem、watchFileSystem进行了设置，并对声明周期钩子beforeRun进行了监听
+  new NodeEnvironmentPlugin({
+    infrastructureLogging: options.infrastructureLogging,
+  }).apply(compiler)
+  // 初始化配置项中的所有插件
+  if (Array.isArray(options.plugins)) {
+    for (const plugin of options.plugins) {
+      if (typeof plugin === 'function') {
+        plugin.call(compiler, compiler)
+      } else {
+        plugin.apply(compiler)
+      }
+    }
+  }
+  // 设置部分配置项的默认值
+  applyWebpackOptionsDefaults(options)
+  // 执行钩子environment
+  compiler.hooks.environment.call()
+  // 执行钩子afterEnvironment
+  compiler.hooks.afterEnvironment.call()
+  // 设置compiler的*outputPath和name、初始化一些内部插件、执行一些生命周期钩子
+  new WebpackOptionsApply().process(options, compiler)
+  // 执行钩子initialize
+  compiler.hooks.initialize.call()
+  // 最后返回Compiler实例
+  return compiler
+}
 ```
 createCompiler主要工作
 - 对配置进行了normalize ===> `getNormalizedWebpackOptions(rawOptions)`
@@ -127,10 +127,145 @@ createCompiler主要工作
 - 初始化配置项中的所有插件
 - 设置部分配置项的默认值 ===> `applyWebpackOptionsDefaults(options)`
 - 设置compiler部分属性、初始化内部插件 ===> `new WebpackOptionsApply().process(options, compiler)`
-- 触发部分生命周期钩子
-  	- environment
-	- afterEnvironment
-	- entryOption
-	- afterPlugins
-	- afterResolvers
-	- initialize
+
+compiler.hooks注册顺序
+- initialize(SyncHook)
+
+- shouldEmit(SyncBailHook)
+- done(AsyncSeriesHook)
+- afterDone(SyncHook)
+- additionalPass(AsyncSeriesHook)
+- beforeRun(AsyncSeriesHook)
+- run(AsyncSeriesHook)
+- emit(AsyncSeriesHook)
+- assetEmitted(AsyncSeriesHook)
+- afterEmit(AsyncSeriesHook)
+
+- thisCompilation(SyncHook)
+- compilation(SyncHook)
+- normalModuleFactory(SyncHook)
+- contextModuleFactory(SyncHook)
+
+- beforeCompile(AsyncSeriesHook)
+- compile(SyncHook)
+- make(AsyncParallelHook)
+- finishMake(AsyncSeriesHook)
+- afterCompile(AsyncSeriesHook)
+
+- watchRun(AsyncSeriesHook)
+- failed(SyncHook)
+- invalid(SyncHook)
+- watchClose(SyncHook)
+- shutdown(AsyncSeriesHook)
+
+- infrastructureLog(SyncBailHook)
+
+- environment(AsyncSeriesHook)
+- afterEnvironment(AsyncSeriesHook)
+- afterPlugins(AsyncSeriesHook)
+- afterResolvers(AsyncSeriesHook)
+- entryOption(AsyncSeriesHook)
+
+compiler.hooks触发顺序    
+- environment
+- afterEnvironment
+- entryOption
+- afterPlugins
+- afterResolvers
+- initialize
+
+插件初始化顺序
+- NodeEnvironmentPlugin
+- 用户配置的所有插件
+- ExternalsPlugin
+- NodeTargetPlugin
+- ElectronTargetPlugin
+- ChunkPrefetchPreloadPlugin
+- ArrayPushCallbackChunkFormatPlugin 
+- CommonJsChunkFormatPlugin
+- ModuleChunkFormatPlugin
+- EnableChunkLoadingPlugin
+- EnableWasmLoadingPlugin
+- EnableLibraryPlugin
+- ModuleInfoHeaderPlugin
+- CleanPlugin
+- EvalSourceMapDevToolPlugin 
+- SourceMapDevToolPlugin 
+- EvalDevToolModulePlugin
+- JavascriptModulesPlugin
+- JsonModulesPlugin
+- AssetModulesPlugin
+- WebAssemblyModulesPlugin
+- AsyncWebAssemblyModulesPlugin
+- LazyCompilationPlugin
+- HttpUriPlugin
+- EntryOptionPlugin
+- RuntimePlugin
+- InferAsyncModulesPlugin
+- DataUriPlugin
+- FileUriPlugin
+- CompatibilityPlugin
+- HarmonyModulesPlugin
+- AMDPlugin
+- RequireJsStuffPlugin
+- CommonJsPlugin
+- LoaderPlugin
+- NodeStuffPlugin
+- APIPlugin
+- ExportsInfoApiPlugin
+- WebpackIsIncludedPlugin
+- ConstPlugin
+- UseStrictPlugin
+- RequireIncludePlugin
+- RequireEnsurePlugin
+- RequireContextPlugin
+- ImportPlugin
+- SystemPlugin
+- ImportMetaPlugin
+- URLPlugin
+- WorkerPlugin
+- DefaultStatsFactoryPlugin
+- DefaultStatsPresetPlugin
+- DefaultStatsPrinterPlugin
+- JavascriptMetaInfoPlugin
+- WarnNoModeSetPlugin
+- EnsureChunkConditionsPlugin
+- RemoveParentModulesPlugin
+- RemoveEmptyChunksPlugin
+- MergeDuplicateChunksPlugin
+- FlagIncludedChunksPlugin
+- SideEffectsFlagPlugin
+- FlagDependencyExportsPlugin
+- FlagDependencyUsagePlugin
+- InnerGraphPlugin
+- MangleExportsPlugin
+- ModuleConcatenationPlugin
+- SplitChunksPlugin
+- RuntimeChunkPlugin
+- NoEmitOnErrorsPlugin
+- RealContentHashPlugin
+- WasmFinalizeExportsPlugin
+- NaturalModuleIdsPlugin
+- NamedModuleIdsPlugin
+- WarnDeprecatedOptionPlugin
+- HashedModuleIdsPlugin
+- DeterministicModuleIdsPlugin
+- OccurrenceModuleIdsPlugin
+- NaturalChunkIdsPlugin
+- NamedChunkIdsPlugin
+- DeterministicChunkIdsPlugin
+- OccurrenceChunkIdsPlugin
+- DefinePlugin
+- TerserPlugin
+- SizeLimitsPlugin
+- TemplatedPathPlugin
+- RecordIdsPlugin
+- WarnCaseSensitiveModulesPlugin
+- AddManagedPathsPlugin
+- AddBuildDependenciesPlugin
+- MemoryWithGcCachePlugin
+- MemoryCachePlugin
+- IdleFileCachePlugin
+- PackFileCacheStrategy
+- ResolverCachePlugin
+- IgnoreWarningsPlugin
