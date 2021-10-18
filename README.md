@@ -5,17 +5,17 @@
 const webpack = require('webpack');
 
 const compiler = webpack({
-  // 配置对象、后面介绍
-}, (err, stats) => { // [Stats Object]（后面介绍）
+  // 配置对象、稍后介绍
+}, (err, stats) => { // [Stats Object]暂时不分析
   if (err || stats.hasErrors()) {
     // 在这里处理错误
   }
   // 处理完成
 });
 ```
-这里以api的方式调用`webpack`，此时会返回一个`Compiler`实例，`Compiler`是`webpack`的主要引擎，它会通过*配置对象*创建`compilation`实例（后序遇到再介绍）。`compiler`也暴露了很多生命周期钩子，具体的钩子在分析`Compiler`类时会介绍。	
+调用`webpack`会返回一个`Compiler`实例，`Compiler`是`webpack`的主要引擎。
 
-**webpack impl**
+**webpack**
 ```js
 const webpack = (options, callback) => {
   const create = () => {
@@ -78,10 +78,9 @@ const webpack = (options, callback) => {
   }
 }
 ```
-webpack函数内部会根据参数`callback`以及配置项`watch`的值执行不同逻辑，但是最终都会创建并返回一个`Compiler`实例。
-构建脚本中传递了`callback`参数，`webpack`函数内部会执行compiler的run方法（假设配置项`watch`为`false`）。我们还是先看看创建Compiler实例时做了些啥。
+webpack函数内部会根据参数`callback`以及配置项`watch`的值执行不同逻辑，但是最终都会通过`createCompiler`或`createMultiCompiler`创建并返回一个`Compiler`实例。
 
-**createCompiler impl**
+**createCompiler**
 ```js
 const createCompiler = rawOptions => {
   // webpack的很多配置项都支持多中配置方式，这里是为了将这些配置项统一化以及给一些配置项设置默认值
@@ -122,13 +121,16 @@ const createCompiler = rawOptions => {
 createCompiler主要工作
 - 对配置进行了normalize ===> `getNormalizedWebpackOptions(rawOptions)`
 - 设置`context`、日志选项 ===> `applyWebpackOptionsBaseDefaults(options)`
-- 实例化Compiler ===> `new Compiler(options.context)`
-- 设置compiler的infrastructureLogger和文件系统 ===> `new NodeEnvironmentPlugin({ infrastructureLogging: options.infrastructureLogging }).apply(compiler)`
+- 实例化Compiler ===> `new Compiler(options.context)`   
+
+  >Compiler构造器主要是挂载一些钩子到实例，并提供部分属性和方法供插件使用，暂时不分析。
+- 设置`compiler`的`infrastructureLogger`和文件系统 ===> `new NodeEnvironmentPlugin({ infrastructureLogging: options.infrastructureLogging }).apply(compiler)`
 - 初始化配置项中的所有插件
 - 设置部分配置项的默认值 ===> `applyWebpackOptionsDefaults(options)`
-- 设置compiler部分属性、初始化内部插件 ===> `new WebpackOptionsApply().process(options, compiler)`
+- 设置`compiler`部分属性、初始化内部插件 ===> `new WebpackOptionsApply().process(options, compiler)`
 
-compiler.hooks注册顺序
+在Compiler构造器中会初始化下列钩子
+
 - initialize(SyncHook)
 
 - shouldEmit(SyncBailHook)
@@ -166,7 +168,7 @@ compiler.hooks注册顺序
 - afterResolvers(AsyncSeriesHook)
 - entryOption(AsyncSeriesHook)
 
-compiler.hooks触发顺序    
+`createCompiler`执行过程中会触发下列钩子
 - environment
 - afterEnvironment
 - entryOption
@@ -176,34 +178,51 @@ compiler.hooks触发顺序
 
 插件初始化顺序
 - NodeEnvironmentPlugin
+
 - 用户配置的所有插件
+
 - ExternalsPlugin
 - NodeTargetPlugin
 - ElectronTargetPlugin
+
 - ChunkPrefetchPreloadPlugin
+
 - ArrayPushCallbackChunkFormatPlugin 
 - CommonJsChunkFormatPlugin
 - ModuleChunkFormatPlugin
+
 - EnableChunkLoadingPlugin
 - EnableWasmLoadingPlugin
 - EnableLibraryPlugin
+
 - ModuleInfoHeaderPlugin
+
 - CleanPlugin
+
 - EvalSourceMapDevToolPlugin 
-- SourceMapDevToolPlugin 
+- SourceMapDevToolPlugin
 - EvalDevToolModulePlugin
+
 - JavascriptModulesPlugin
 - JsonModulesPlugin
 - AssetModulesPlugin
+
 - WebAssemblyModulesPlugin
 - AsyncWebAssemblyModulesPlugin
+
 - LazyCompilationPlugin
+
 - HttpUriPlugin
+
 - EntryOptionPlugin
+
 - RuntimePlugin
+
 - InferAsyncModulesPlugin
+
 - DataUriPlugin
 - FileUriPlugin
+
 - CompatibilityPlugin
 - HarmonyModulesPlugin
 - AMDPlugin
@@ -224,11 +243,15 @@ compiler.hooks触发顺序
 - ImportMetaPlugin
 - URLPlugin
 - WorkerPlugin
+
 - DefaultStatsFactoryPlugin
 - DefaultStatsPresetPlugin
 - DefaultStatsPrinterPlugin
+
 - JavascriptMetaInfoPlugin
+
 - WarnNoModeSetPlugin
+
 - EnsureChunkConditionsPlugin
 - RemoveParentModulesPlugin
 - RemoveEmptyChunksPlugin
@@ -257,15 +280,353 @@ compiler.hooks触发顺序
 - OccurrenceChunkIdsPlugin
 - DefinePlugin
 - TerserPlugin
+
 - SizeLimitsPlugin
+
 - TemplatedPathPlugin
+
 - RecordIdsPlugin
+
 - WarnCaseSensitiveModulesPlugin
+
 - AddManagedPathsPlugin
+
 - AddBuildDependenciesPlugin
 - MemoryWithGcCachePlugin
 - MemoryCachePlugin
+
 - IdleFileCachePlugin
 - PackFileCacheStrategy
 - ResolverCachePlugin
+
 - IgnoreWarningsPlugin
+
+在得到`compiler`后，我们会执行`compiler.run`或`compiler.watch`来启动编译过程，我们先分析`run`方法。
+
+**compiler.run**
+```js
+run(callback) {
+  if (this.running) {
+    return callback(new ConcurrentCompilationError());
+  }
+
+  let logger;
+
+  const finalCallback = (err, stats) => {
+    if (logger) logger.time("beginIdle");
+    this.idle = true;
+    this.cache.beginIdle();
+    this.idle = true;
+    if (logger) logger.timeEnd("beginIdle");
+    this.running = false;
+    if (err) {
+      this.hooks.failed.call(err);
+    }
+    if (callback !== undefined) callback(err, stats);
+    this.hooks.afterDone.call(stats);
+  };
+
+  const startTime = Date.now();
+
+  this.running = true;
+
+  // compiler.compile执行完成后的回调
+  const onCompiled = (err, compilation) => {
+    if (err) return finalCallback(err);
+    /** 代码省略，稍后介绍 */
+  };
+
+  const run = () => {
+    this.hooks.beforeRun.callAsync(this, err => {
+      if (err) return finalCallback(err);
+
+      this.hooks.run.callAsync(this, err => {
+        if (err) return finalCallback(err);
+        // readRecords暂时不分析，执行成功后会执行compiler.compile
+        this.readRecords(err => {
+          if (err) return finalCallback(err);
+
+          this.compile(onCompiled);
+        });
+      });
+    });
+  };
+  if (this.idle) { // 暂时不分析
+    this.cache.endIdle(err => {
+      if (err) return finalCallback(err);
+
+      this.idle = false;
+      run();
+    });
+  } else {
+    run();
+  }
+}
+```
+
+`compiler.run`主要通过执行内部的`run`函数来启动编译过程，`run`函数主要是负责触发一些钩子。
+
+compiler.hooks触发顺序  
+- beforeRun
+- run
+
+`run`钩子执行成功后执行`compiler.compile`
+
+**compiler.compile**
+```js
+compile(callback) {
+  // 创建NormalModuleFactory、ContextModuleFactory
+  const params = this.newCompilationParams()
+  this.hooks.beforeCompile.callAsync(params, err => {
+    if (err) return callback(err)
+
+    this.hooks.compile.call(params)
+    // 创建Compilation实例，Compilation类实现代码有4000+行，稍后分析
+    const compilation = this.newCompilation(params)
+
+    const logger = compilation.getLogger('webpack.Compiler')
+
+    logger.time('make hook')
+    this.hooks.make.callAsync(compilation, err => {
+      logger.timeEnd('make hook')
+      if (err) return callback(err)
+
+      logger.time('finish make hook')
+      this.hooks.finishMake.callAsync(compilation, err => {
+        logger.timeEnd('finish make hook')
+        if (err) return callback(err)
+
+        process.nextTick(() => {
+          logger.time('finish compilation')
+          compilation.finish(err => {
+            logger.timeEnd('finish compilation')
+            if (err) return callback(err)
+
+            logger.time('seal compilation')
+            compilation.seal(err => {
+              logger.timeEnd('seal compilation')
+              if (err) return callback(err)
+
+              logger.time('afterCompile hook')
+              this.hooks.afterCompile.callAsync(compilation, err => {
+                logger.timeEnd('afterCompile hook')
+                if (err) return callback(err)
+                // 之前之前的compiler.run onCompiled回调函数
+                return callback(null, compilation)
+              })
+            })
+          })
+        })
+      })
+    })
+  })
+}
+```
+`compiler.compile`主要是触发一些钩子，然后在执行过程中创建了`Compilation`实例并通过该实例执行一次编译过程，最后在`afterCompile`钩子调用成功后会执行`compiler.run onCompiled`函数。
+
+compiler.hooks触发顺序  
+- normalModuleFactory
+- contextModuleFactory
+- beforeCompile
+- compile
+- thisCompilation
+- compilation
+- make
+- finishMake
+- afterCompile
+
+`Compilation`构造器中会初始化下列钩子以及大量的属性和方法（遇到再分析）
+
+- buildModule(SyncHook)
+- rebuildModule(SyncHook)
+- failedModule(SyncHook)
+- succeedModule(SyncHook)
+- stillValidModule(SyncHook)
+
+- addEntry(SyncHook)
+- failedEntry(SyncHook)
+- succeedEntry(SyncHook)
+
+- dependencyReferencedExports(SyncWaterfallHook)
+
+- executeModule(SyncHook)
+- prepareModuleExecution(AsyncParallelHook)
+
+- finishModules(AsyncSeriesHook)
+- finishRebuildingModule(AsyncSeriesHook)
+- unseal(SyncHook)
+- seal(SyncHook)
+
+- beforeChunks(SyncHook)
+- afterChunks(SyncHook)
+
+- optimizeDependencies(SyncBailHook)
+- afterOptimizeDependencies(SyncHook)
+
+- optimize(SyncHook)
+- optimizeModules(SyncBailHook)
+- afterOptimizeModules(SyncHook)
+
+- optimizeChunks(SyncBailHook)
+- afterOptimizeChunks(SyncHook)
+
+- optimizeTree(AsyncSeriesHook)
+- afterOptimizeTree(SyncHook)
+
+- optimizeChunkModules(AsyncSeriesBailHook)
+- afterOptimizeChunkModules(SyncHook)
+- shouldRecord(SyncBailHook)
+
+- additionalChunkRuntimeRequirements(SyncHook)
+- runtimeRequirementInChunk(HookMap)
+- additionalModuleRuntimeRequirements(SyncHook)
+- runtimeRequirementInModule(HookMap)
+- additionalTreeRuntimeRequirements(SyncHook)
+- runtimeRequirementInTree(HookMap)
+
+- runtimeModule(SyncHook)
+
+- reviveModules(SyncHook)
+- beforeModuleIds(SyncHook)
+- moduleIds(SyncHook)
+- optimizeModuleIds(SyncHook)
+- afterOptimizeModuleIds(SyncHook)
+
+- reviveChunks(SyncHook)
+- beforeChunkIds(SyncHook)
+- chunkIds(SyncHook)
+- optimizeChunkIds(SyncHook)
+- afterOptimizeChunkIds(SyncHook)
+
+- recordModules(SyncHook)
+- recordChunks(SyncHook)
+
+- optimizeCodeGeneration(SyncHook)
+
+- beforeModuleHash(SyncHook)
+- afterModuleHash(SyncHook)
+
+- beforeCodeGeneration(SyncHook)
+- afterCodeGeneration(SyncHook)
+
+- beforeRuntimeRequirements(SyncHook)
+- afterRuntimeRequirements(SyncHook)
+
+- beforeHash(SyncHook)
+- contentHash(SyncHook)
+- afterHash(SyncHook)
+- recordHash(SyncHook)
+- record(SyncHook)
+
+- beforeModuleAssets(SyncHook)
+- shouldGenerateChunkAssets(SyncBailHook)
+- beforeChunkAssets(SyncHook)
+
+- processAssets(AsyncSeriesHook)
+- afterProcessAssets(SyncHook)
+- processAdditionalAssets(AsyncSeriesHook)
+
+- needAdditionalSeal(SyncBailHook)
+- afterSeal(AsyncSeriesHook)
+
+- renderManifest(SyncWaterfallHook)
+
+- fullHash(SyncHook)
+- chunkHash(SyncHook)
+
+- moduleAsset(SyncHook)
+- chunkAsset(SyncHook)
+
+- assetPath(SyncWaterfallHook)
+
+- needAdditionalPass(SyncBailHook)
+
+- log(SyncBailHook)
+
+- processWarnings(SyncWaterfallHook)
+- processErrors(SyncWaterfallHook)
+
+- statsPreset(HookMap)
+- statsNormalize(SyncHook)
+- statsFactory(SyncHook)
+- statsPrinter(SyncHook)
+
+
+**compiler.run onCompiled**
+```js
+const onCompiled = (err, compilation) => {
+  if (err) return finalCallback(err)
+  // 判断是否需要emitAssets，如果不需要，则直接触发done钩子并在钩子执行成功后执行用户传递的callback回调
+  if (this.hooks.shouldEmit.call(compilation) === false) {
+    compilation.startTime = startTime
+    compilation.endTime = Date.now()
+    const stats = new Stats(compilation)
+    this.hooks.done.callAsync(stats, err => {
+      if (err) return finalCallback(err)
+      return finalCallback(null, stats)
+    })
+    return
+  }
+  process.nextTick(() => {
+    logger = compilation.getLogger('webpack.Compiler')
+    logger.time('emitAssets')
+    // 生成资源文件，稍后介绍
+    this.emitAssets(compilation, err => {
+      logger.timeEnd('emitAssets')
+      if (err) return finalCallback(err)
+
+      if (compilation.hooks.needAdditionalPass.call()) {
+        compilation.needAdditionalPass = true
+
+        compilation.startTime = startTime
+        compilation.endTime = Date.now()
+        logger.time('done hook')
+        const stats = new Stats(compilation)
+        this.hooks.done.callAsync(stats, err => {
+          logger.timeEnd('done hook')
+          if (err) return finalCallback(err)
+          // 暂时不分析
+          this.hooks.additionalPass.callAsync(err => {
+            if (err) return finalCallback(err)
+            this.compile(onCompiled)
+          })
+        })
+        return
+      }
+      // 生成records records暂时不分析
+      logger.time('emitRecords')
+      this.emitRecords(err => {
+        logger.timeEnd('emitRecords')
+        if (err) return finalCallback(err)
+
+        compilation.startTime = startTime
+        compilation.endTime = Date.now()
+        logger.time('done hook')
+        const stats = new Stats(compilation)
+        this.hooks.done.callAsync(stats, err => {
+          logger.timeEnd('done hook')
+          if (err) return finalCallback(err)
+          this.cache.storeBuildDependencies(
+            compilation.buildDependencies,
+            err => {
+              if (err) return finalCallback(err)
+              return finalCallback(null, stats)
+            },
+          )
+        })
+      })
+    })
+  })
+}
+```
+`compiler.run onCompiled`主要是触发了一些钩子，然后在执行过程中执行`compiler.emitAssets`输出产物。
+
+compiler.hooks触发顺序  
+- shouldEmit
+- emit
+- assetEmitted
+- afterEmit
+- done
+- additionalPass
+- afterDone
+- failed
