@@ -2,7 +2,9 @@
 
 官方解释：将Node.js格式的文件系统应用到compiler。
 
-该插件主要做了两件事
+可以通过`webpack.node.NodeEnvironmentPlugin`访问
+
+该插件主要做了3件事
 
 1. 初始化了`compiler`的`infrastructureLogger`属性
 
@@ -33,3 +35,5 @@
     - watchFileSystem
 
       一个`NodeWatchFileSystem`实例，（暂不分析）。
+
+3. 在`beforeRun`钩子触发后重置`compiler.fsStartTime`为`Date.now()`并清理`inputFileSystem`的缓存
