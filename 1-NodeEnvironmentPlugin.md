@@ -1,10 +1,11 @@
 # NodeEnvironmentPlugin
 
-官方解释：将Node.js格式的文件系统应用到compiler。
+**使用方式**  
 
-可以通过`webpack.node.NodeEnvironmentPlugin`访问
+- `webpack`内部在生成`compiler`后会默认加载该插件
+- `new webpack.node.NodeEnvironmentPlugin(options)`
 
-该插件主要做了3件事
+**功能分析**
 
 1. 初始化了`compiler`的`infrastructureLogger`属性
 

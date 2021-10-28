@@ -1,6 +1,13 @@
 # EntryOptionPlugin
 
-内部使用，未暴露该插件给开发者使用，该插件主要用于在`entryOption`钩子触发后根据`entry`的类型加载`DynamicEntryPlugin`和`EntryPlugin`两个插件
+**使用方式**  
+
+- `webpack`内部在配置`compiler`时会默认加载该插件
+- `new webpack.EntryOptionPlugin()`
+
+**功能分析**
+
+该插件主要用于在`entryOption`钩子触发后根据`entry`的类型加载`DynamicEntryPlugin`和`EntryPlugin`两个插件
 
 ## DynamicEntryPlugin
 ## EntryPlugin
