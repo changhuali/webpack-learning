@@ -1,5 +1,7 @@
 # source reading record
 
+## 引擎加载阶段
+
 **构建脚本**
 ```js
 const webpack = require('webpack');
@@ -631,59 +633,10 @@ compiler.hooks触发顺序
 - afterDone
 - failed
 
-**总结**
+**小结**
 
-在执行`webpack`时，其内部会创建一个`compiler`，然后通过执行`compiler.run`方法启动编译过程，`compiler.run`会在`run`钩子执行成功后调用`compiler.compile`方法创建`compilation`，所有的编译工作都是基于`compilation`完成的，最后再执行`compiler.run onCompiled`输出资源。代码中我们看到注册了大量的生命周期钩子（110个左右）以及插件（90个左右），而几乎所有的工作也都是基于这些生命周期钩子以及插件完成的，接下来我们开始分析这些钩子以及插件的作用。
+在执行`webpack`时，其内部会创建一个`compiler`，然后通过执行`compiler.run`方法启动编译过程，`compiler.run`会在`run`钩子执行成功后调用`compiler.compile`方法创建`compilation`，所有的编译工作都是基于`compilation`完成的，最后再执行`compiler.run onCompiled`输出资源。代码中我们看到`webpack`通过生命周期钩子（110个左右）管控构建流程，而所有的功能都是基于插件实现的。
 
-在`createCompiler`中遇到的第一个插件就是`NodeEnvironmentPlugin`，接下来我们分析其源码
+## 编译阶段
 
-
-**NodeEnvironmentPlugin**
-
-创建`compiler.infrastructureLogger`
-  - infrastructureLogging.debug => false 如果为true，将会输出所有日志
-  - infrastructureLogging.level => 日志级别，默认为info
-  - infrastructureLogging.console => 打印日志的console对象，其方法是基于process.stderr.stream封装的
-
-创建`compiler.xxxFileSystem`
-  - inputFileSystem
-  - outputFileSystem
-  - intermediateFileSystem
-  - watchFileSystem
-
-`inputFileSystem`是一个`CachedInputFileSystem`实例，`CachedInputFileSystem`重新封装了下列方法，主要实现了缓存、以及文件访问优化
- - lstat
- - lstatSync
- - stat
- - statSync
- - readdir
- - readdirSync
- - readFile
- - readFileSync
- - readJson
- - readJsonSync
- - readlink
- - readlinkSync
-
-*缓存*
-
-每组方法都是通过一个`CacheBackend`实例代理实现的，`CacheBackend`实例内部包含了私有属性`_data`，它是一个`Map<string, { err: Error, result: any, level: Set<string> }>`类型的数据，其key为path，value为文件读取信息。
-
-判断是否命中缓存只需判断`this._data.get(path)`的结果即可，如果值不等于`undefined`则命中缓存，然后调用callback（如果是异步调用，需要以nextTick的方式调用callback）返回结果。
-
-如果没有命中缓存，则调用原生方法获取文件信息，然后存储到`_data`。
-
-*文件访问优化*
-
-多次对相同`path`进行某异步操作，只会调用一次原生方法，原理和缓存类似，内部用`__activeAsyncOperations`保存了异步操作，在原生方法执行完成后再触发保存在`___activeAsyncOperations`中的回调函数。
-
-`CacheBackend`中的`_mode`、`__levels`、`_currentLevel`、`_tickInterval`、`*decay*`估计是在做缓存更新优化，暂时不明白作者的思路，后面再分析吧。
-
-注意：**只有在不传递options时才会走缓存机制**。
-
-注册`beforeRun`钩子
-```js
-compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
-  // xxx
-})
-```
+前面的工作都是在为编译做准备，真正的编译工作是从`compiler.hooks.make.callAsync`执行后开始的
