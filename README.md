@@ -85,7 +85,7 @@ webpack函数内部会根据参数`callback`以及配置项`watch`的值执行�
 **createCompiler**
 ```js
 const createCompiler = rawOptions => {
-  // webpack的很多配置项都支持多中配置方式，这里是为了将这些配置项统一化以及给一些配置项设置默认值
+  // webpack的很多配置项都支持多种配置方式，这里是为了将这些配置项统一化以及给一些配置项设置默认值
   const options = getNormalizedWebpackOptions(rawOptions)
   // 设置options.context和infrastructureLogging默认值
   applyWebpackOptionsBaseDefaults(options)
@@ -639,4 +639,74 @@ compiler.hooks触发顺序
 
 ## 编译阶段
 
-前面的工作都是在为编译做准备，真正的编译工作是从`compiler.hooks.make.callAsync`执行后开始的
+前面的工作都是在为编译做准备，真正的编译工作是从`compiler.hooks.make.callAsync`执行后开始的，因此我们可以找出编译入口为`compilation.addEntry`方法。
+
+**compilation.addEntry**
+
+参数包含了入口名、`entryDependency`、入口options，然后调用`compilation._addEntryItem`方法。
+
+**compilation._addEntryItem**
+
+- 执行`this.entries.set(name, entryData)`
+ 
+  将参数组装为一个`entryData`然后存储到以入口名为`key`的`compilation.entries`中，并且将之后同名的`entryDependency`都存储到该`entryData`中。
+
+- 触发`compilation.hooks.addEntry`钩子
+
+  内部没有相关插件注册这个钩子。
+
+- 执行`compilation.addModuleTree`方法
+
+  失败会触发`compilation.hooks.failedEntry`钩子，成功则触发`compilation.hooks.succeedEntry`钩子，然后完成`make`阶段。
+
+**compilation.addModuleTree**
+
+- 校验`dependency`是否合法
+- 根据`dependency`的类型查找`compilation.dependencyFactories`中是否有对应的`moduleFactory`用于处理该依赖
+- 执行`compilation.handleModuleCreation`方法
+
+  如果结果包含错误信息，且`options.bail`为`true`，则会终止剩下流程，否则构建过程会继续。
+
+**compilation.handleModuleCreation**
+
+- 若`options.profile`为true，则会生成一个`ModuleProfile`实例
+- 执行`compilation.factorizeModule`方法
+  
+**compilation.factorizeModule**
+
+- 使用原参数调用`compilation.factorizeQueue.add`方法
+
+  `compilation.factorizeQueue`是一个`AsyncQueue`实例，接下来需要先分析下`AsyncQueue`的作用。
+
+**AsyncQueue**
+
+- 将所有的`entry`依次存储到一个待处理队列，然后对这个待处理队列中的`entry`依次调用`processor`处理（异步）
+- 限制`entry`并发处理的数量不能超过`options.parallelism`配置项（默认100）
+- 可以停止处理待处理的`entry`，同时后序添加`entry`全部会以错误的方式返回结果
+
+`compilation.factorizeQueue`的`processor`是`compilation._factorizeModule`方法。
+
+**compilation._factorizeModule**
+
+- 执行`factory.create`
+
+  这里的`factory`是一个`NormalModuleFactory`实例。
+
+**normalModuleFactory.create**
+
+- 生成一个`resolveData`作为后序钩子的触发参数，其中包括了`entry`的一些`resolve`相关的信息
+- 触发了`normalModuleFactory.hooks.beforeResolve`钩子
+  
+  该钩子类型为`AsyncSeriesBailHook`，如果注册该钩子，并返回`false`或者一个`object`类型的值，则不会处理该`entry`。
+
+- 触发了`normalModuleFactory.hooks.factorize`钩子
+
+  该钩子类型为`AsyncSeriesBailHook`，注册该钩子完成`entry`处理逻辑，`NormalModuleFactory`类在实例化的时候便注册了这个钩子，注册逻辑为
+
+  - 触发`normalModuleFactory.hooks.resolve`钩子
+
+    `NormalModuleFactory`类在实例化的时候便注册了这个钩子，功能和`beforeResolve`钩子差不多。
+
+  - 触发`normalModuleFactory.hooks.afterResolve`钩子
+  - 触发`normalModuleFactory.hooks.createModule`钩子
+  - 触发`normalModuleFactory.hooks.module`钩子
