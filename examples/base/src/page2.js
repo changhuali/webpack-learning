@@ -1,2 +1,2 @@
-import a from './page3'
-export default a
+const value = 'page2'
+export default value
