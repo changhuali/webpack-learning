@@ -1,6 +1,24 @@
+/*
+ * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/page1.js":
+/*!**********************!*\
+  !*** ./src/page1.js ***!
+  \**********************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _aaa_png__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./aaa.png */ \"./src/aaa.png\");\n/* harmony import */ var _page2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./page2 */ \"./src/page2.js\");\n\n\n// test\nconsole.log(_aaa_png__WEBPACK_IMPORTED_MODULE_0__, _page2__WEBPACK_IMPORTED_MODULE_1__[\"default\"]);\n\n\n//# sourceURL=webpack://base/./src/page1.js?");
+
+/***/ }),
 
 /***/ "./src/page2.js":
 /*!**********************!*\
@@ -8,12 +26,7 @@
   \**********************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-const value = 'page2'
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (value);
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"default\": () => (__WEBPACK_DEFAULT_EXPORT__)\n/* harmony export */ });\nconst value = 'page2'\n/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (value);\n\n//# sourceURL=webpack://base/./src/page2.js?");
 
 /***/ }),
 
@@ -23,7 +36,7 @@ const value = 'page2'
   \*********************/
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-module.exports = __webpack_require__.p + "6c599103ee1ccfa5d717.png";
+eval("module.exports = __webpack_require__.p + \"6c599103ee1ccfa5d717.png\";\n\n//# sourceURL=webpack://base/./src/aaa.png?");
 
 /***/ })
 
@@ -115,21 +128,11 @@ module.exports = __webpack_require__.p + "6c599103ee1ccfa5d717.png";
 /******/ 	})();
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
-(() => {
-/*!**********************!*\
-  !*** ./src/page1.js ***!
-  \**********************/
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _aaa_png__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./aaa.png */ "./src/aaa.png");
-/* harmony import */ var _page2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./page2 */ "./src/page2.js");
-
-
-// test
-console.log(_aaa_png__WEBPACK_IMPORTED_MODULE_0__, _page2__WEBPACK_IMPORTED_MODULE_1__["default"]);
-
-})();
-
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module can't be inlined because the eval devtool is used.
+/******/ 	var __webpack_exports__ = __webpack_require__("./src/page1.js");
+/******/ 	
 /******/ })()
 ;
