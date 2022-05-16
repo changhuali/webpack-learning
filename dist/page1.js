@@ -2,6 +2,21 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./src/page2.js":
+/*!**********************!*\
+  !*** ./src/page2.js ***!
+  \**********************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+const value = 'page2'
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (value);
+
+/***/ }),
+
 /***/ "./src/aaa.png":
 /*!*********************!*\
   !*** ./src/aaa.png ***!
@@ -39,6 +54,18 @@ module.exports = __webpack_require__.p + "6c599103ee1ccfa5d717.png";
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/global */
 /******/ 	(() => {
 /******/ 		__webpack_require__.g = (function() {
@@ -49,6 +76,11 @@ module.exports = __webpack_require__.p + "6c599103ee1ccfa5d717.png";
 /******/ 				if (typeof window === 'object') return window;
 /******/ 			}
 /******/ 		})();
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/make namespace object */
@@ -91,9 +123,11 @@ var __webpack_exports__ = {};
   \**********************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _aaa_png__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./aaa.png */ "./src/aaa.png");
+/* harmony import */ var _page2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./page2 */ "./src/page2.js");
+
 
 // test
-console.log(_aaa_png__WEBPACK_IMPORTED_MODULE_0__);
+console.log(_aaa_png__WEBPACK_IMPORTED_MODULE_0__, _page2__WEBPACK_IMPORTED_MODULE_1__["default"]);
 
 })();
 
