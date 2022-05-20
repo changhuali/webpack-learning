@@ -20,6 +20,9 @@
   },
   "homepage": "https://github.com/changhuali/webpack-learning#readme",
   "dependencies": {
+    "@babel/core": "^7.17.12",
+    "@babel/preset-env": "^7.17.12",
+    "babel-loader": "^8.2.5",
     "tapable": "^2.2.1"
   }
 }
