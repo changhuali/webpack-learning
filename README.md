@@ -710,3 +710,6 @@ compiler.hooks触发顺序
   - 触发`normalModuleFactory.hooks.afterResolve`钩子
   - 触发`normalModuleFactory.hooks.createModule`钩子
   - 触发`normalModuleFactory.hooks.module`钩子
+
+**缓存**
+命中缓存的模块不会执行build，而且会触发stillValidModule钩子
