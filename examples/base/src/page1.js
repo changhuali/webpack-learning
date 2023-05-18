@@ -1,4 +1,3 @@
-import("./page2").then((module) => {
-  console.log(module.default, value3);
-});
+import { page3 } from './page2'
 
+page3.default()

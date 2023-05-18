@@ -5,9 +5,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Launch Program",
+      "runtimeExecutable": "/Users/hjmac04/.nvm/versions/node/v14.18.2/bin/node",
       "skipFiles": [
         "<node_internals>/**"
       ],

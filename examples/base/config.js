@@ -4,8 +4,15 @@ module.exports = {
   context: path.resolve(__dirname),
   mode: "development",
   entry: {
-    page1: "./src/page1",
+    page1: {
+      import: ["./src/page1"],
+      library: {
+        name: 'test',
+        type: 'this'
+      }
+    },
   },
+  devtool: false,
   module: {
     rules: [
       // {
@@ -25,9 +32,13 @@ module.exports = {
   },
   experiments: {
     outputModule: false,
-  },
+  }, 
   optimization: {
-    innerGraph: true,
+    // innerGraph: true,
+    // providedExports: true,
+    // usedExports: true,
+    // sideEffects: true,
+    mangleExports: 'size',
   },
   plugins: [
     new (class PrintModuleOrderPlugin {
@@ -38,7 +49,7 @@ module.exports = {
             compilation.hooks.succeedModule.tap(
               "PrintModuleOrderPlugin",
               (module) => {
-                console.log(module.rawRequest);
+                console.log(module)
               }
             );
           }
@@ -46,7 +57,7 @@ module.exports = {
         compiler.hooks.finishMake.tap(
           "PrintModuleOrderPlugin",
           (compilation) => {
-            console.log(compilation.moduleGraph);
+            // console.log(compilation.moduleGraph);
           }
         );
       }

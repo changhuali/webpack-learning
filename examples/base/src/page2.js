@@ -1,2 +1,3 @@
-import value4 from "./page4"
-export default value4
+import {a} from './page3'
+
+export {a, a as default}

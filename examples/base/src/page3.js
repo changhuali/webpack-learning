@@ -1,2 +1,5 @@
-import value4 from "./page4"
-export default value4
+function a() {
+  console.log(1)
+}
+export { a }
+export default a
