@@ -713,3 +713,6 @@ compiler.hooks触发顺序
 
 **缓存**
 命中缓存的模块不会执行build，而且会触发stillValidModule钩子
+
+
+`watch`模式，新的编译过程启动前会保存一个时间戳到`lastWatcherStartTime`, `watchPack`在监听文件变化时会与该时间戳进行对比, 因此在`run` `beforeRun`等钩子中如果对监听的文件进行了修改, 则会触发新的编译流程。
